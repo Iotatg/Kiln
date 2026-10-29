@@ -36,6 +36,7 @@ wrapper finds it without any environment variable.
 ./bin/kiln check app.bun      # parse-only syntax check
 ./bin/kiln fmt src/iso.bun    # the language's own formatter
 sh scripts/smoke.sh           # 19 assertions, starts its own server on :8791
+sh scripts/tunnel.sh          # public https URL through a Cloudflare quick tunnel
 ```
 
 Requirements: Python 3.9+, and nothing else. No `pip install`, no `node_modules`.
@@ -67,6 +68,7 @@ src/sections.bun     504 lines   the nine sections, assembled from content.bun
 assets/app.css      1252 lines   the design system
 assets/app.js        256 lines   tabs, search, filters, the form, the menu, reveal
 scripts/smoke.sh      96 lines   19 end-to-end assertions
+scripts/tunnel.sh                 public URL, no account needed
 scripts/iso-preview.bun           renders a sample scene to /tmp/iso.svg
 ```
 
