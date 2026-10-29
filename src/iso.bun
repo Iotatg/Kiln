@@ -1,0 +1,311 @@
+// src/iso.bun — isometric geometry, emitted as SVG.
+//
+// The visual world of this site is drawn, not photographed: boxes on a
+// drafting board, wireframe or solid, stacked into diagrams. Doing it in maths
+// rather than in a drawing tool keeps the diagrams crisp at any size, lets the
+// page animate them face by face, and keeps every line on the same 30° grid.
+//
+// A box is a dict:
+//   x, y, z      the near corner, in isometric units
+//   w, d, h      size along each axis
+//   tone         "solid" (default) | "wire"
+//   fill         base colour for solid boxes
+//   edge         stroke colour
+//   opacity      optional, 0..1
+//   dash         optional stroke-dasharray for wire boxes
+//   id           optional, emitted as data-box for the page to animate
+//
+// Screen projection: x runs right-down, y runs left-down, z runs up.
+
+let COS30 = 0.8660254037844386
+let SIN30 = 0.5
+let HEX = "0123456789abcdef"
+
+export fn iso_sx(x, y) {
+    return (x - y) * COS30
+}
+
+export fn iso_sy(x, y, z) {
+    return (x + y) * SIN30 - z
+}
+
+fn num(value) {
+    return f"{value:.1f}"
+}
+
+fn pt(x, y, z) {
+    return num(iso_sx(x, y)) + "," + num(iso_sy(x, y, z))
+}
+
+// The three visible faces of a box, each as an SVG points attribute.
+export fn iso_faces(box) {
+    let x = box["x"]
+    let y = box["y"]
+    let z = box["z"]
+    let w = box["w"]
+    let d = box["d"]
+    let h = box["h"]
+    let x2 = x + w
+    let y2 = y + d
+    let z2 = z + h
+    let top = pt(x, y, z2) + " " + pt(x2, y, z2) + " " + pt(x2, y2, z2) + " " + pt(x, y2, z2)
+    let right = pt(x2, y, z2) + " " + pt(x2, y2, z2) + " " + pt(x2, y2, z) + " " + pt(x2, y, z)
+    let left = pt(x, y2, z2) + " " + pt(x2, y2, z2) + " " + pt(x2, y2, z) + " " + pt(x, y2, z)
+    return { "top": top, "right": right, "left": left }
+}
+
+// A shade of a hex colour, used for the three faces of a solid box.
+export fn iso_shade(hex, factor) {
+    var clean = hex
+    if clean.starts_with("#") {
+        clean = clean.slice(1, len(clean))
+    }
+    let r = hex_to_int(clean.slice(0, 2))
+    let g = hex_to_int(clean.slice(2, 4))
+    let b = hex_to_int(clean.slice(4, 6))
+    return "#" + hex_of(clamp_byte(int(float(r) * factor)))
+        + hex_of(clamp_byte(int(float(g) * factor)))
+        + hex_of(clamp_byte(int(float(b) * factor)))
+}
+
+fn hex_to_int(text) {
+    var value = 0
+    var i = 0
+    while i < len(text) {
+        let digit = HEX.index_of(text.slice(i, i + 1).lower())
+        if digit >= 0 {
+            value = value * 16 + digit
+        }
+        i = i + 1
+    }
+    return value
+}
+
+fn clamp_byte(value) {
+    if value < 0 {
+        return 0
+    }
+    if value > 255 {
+        return 255
+    }
+    return value
+}
+
+fn hex_of(number) {
+    return HEX[number / 16] + HEX[number % 16]
+}
+
+// One box as SVG.
+export fn iso_box_svg(box, id) {
+    let faces = iso_faces(box)
+    var tone = "solid"
+    if box.has("tone") {
+        tone = box["tone"]
+    }
+    var opacity = 1.0
+    if box.has("opacity") {
+        opacity = float(box["opacity"])
+    }
+    var out = "<g class=\"iso-box\""
+    if id != "" {
+        out = out + " data-box=\"" + id + "\""
+    }
+    out = out + " opacity=\"" + f"{opacity:.2f}" + "\">"
+
+    if tone == "wire" {
+        var edge = "rgba(239,237,230,0.42)"
+        if box.has("edge") {
+            edge = box["edge"]
+        }
+        var dash = ""
+        if box.has("dash") {
+            dash = " stroke-dasharray=\"" + box["dash"] + "\""
+        }
+        out = out + face(faces["top"], "none", edge, dash)
+        out = out + face(faces["left"], "none", edge, dash)
+        out = out + face(faces["right"], "none", edge, dash)
+    } else {
+        var fill = "#2222f5"
+        if box.has("fill") {
+            fill = box["fill"]
+        }
+        var edge = iso_shade(fill, 0.55)
+        if box.has("edge") {
+            edge = box["edge"]
+        }
+        out = out + face(faces["top"], iso_shade(fill, 1.0), edge, "")
+        out = out + face(faces["left"], iso_shade(fill, 0.72), edge, "")
+        out = out + face(faces["right"], iso_shade(fill, 0.5), edge, "")
+    }
+    out = out + "</g>"
+    return out
+}
+
+// Every stroke is non-scaling: the scene is drawn in isometric units and then
+// scaled to fit, and a hairline has to stay a hairline when it is.
+fn face(points, fill, stroke, extra) {
+    return "<polygon points=\"" + points + "\" fill=\"" + fill + "\" stroke=\"" + stroke
+        + "\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\"" + extra + "/>"
+}
+
+// Painter's order: far boxes first, so a near box covers what is behind it.
+export fn iso_sort(boxes) {
+    var sorted = []
+    var i = 0
+    while i < len(boxes) {
+        let box = boxes[i]
+        let depth = box["x"] + box["w"] / 2 + box["y"] + box["d"] / 2 + box["z"]
+        var placed = false
+        var out = []
+        var j = 0
+        while j < len(sorted) {
+            let other = sorted[j]
+            let other_depth = other["x"] + other["w"] / 2 + other["y"] + other["d"] / 2 + other["z"]
+            if !placed and depth < other_depth {
+                out.push(box)
+                placed = true
+            }
+            out.push(other)
+            j = j + 1
+        }
+        if !placed {
+            out.push(box)
+        }
+        sorted = out
+        i = i + 1
+    }
+    return sorted
+}
+
+// A full scene: the boxes, plus an optional drafting grid on the ground.
+export fn iso_scene(boxes, view) {
+    let width = view["w"]
+    let height = view["h"]
+    let scale = view["scale"]
+    let ox = view["ox"]
+    let oy = view["oy"]
+    var out = "<svg class=\"iso\" viewBox=\"0 0 " + str(width) + " " + str(height) + "\""
+    out = out + " role=\"img\" preserveAspectRatio=\"xMidYMid meet\""
+    if view.has("title") {
+        out = out + " aria-label=\"" + view["title"] + "\""
+    }
+    out = out + ">"
+    out = out + "<g transform=\"translate(" + num(ox) + " " + num(oy) + ") scale(" + f"{scale:.4f}" + ")\">"
+    if view.has("grid") {
+        out = out + iso_ground(view["grid"])
+    }
+    if view.has("links") {
+        let links = view["links"]
+        var k = 0
+        while k < len(links) {
+            let link = links[k]
+            out = out + iso_link(link["a"], link["b"], link["colour"])
+            k = k + 1
+        }
+    }
+    let ordered = iso_sort(boxes)
+    var i = 0
+    while i < len(ordered) {
+        let box = ordered[i]
+        var id = ""
+        if box.has("id") {
+            id = box["id"]
+        }
+        out = out + iso_box_svg(box, id)
+        i = i + 1
+    }
+    out = out + "</g>"
+    if view.has("callouts") {
+        out = out + iso_callouts(view["callouts"], scale, ox, oy)
+    }
+    out = out + "</svg>"
+    return out
+}
+
+// Callouts are drawn in screen coordinates, outside the scaled group, so the
+// type stays 11px however large the scene is drawn.
+fn iso_callouts(list, scale, ox, oy) {
+    var out = "<g class=\"iso-callouts\">"
+    var i = 0
+    while i < len(list) {
+        let item = list[i]
+        let px = ox + scale * iso_sx(item["x"], item["y"])
+        let py = oy + scale * iso_sy(item["x"], item["y"], item["z"])
+        let ex = px + item["dx"]
+        let ey = py + item["dy"]
+        var anchor = "start"
+        var tx = ex + 7
+        if item.has("anchor") {
+            anchor = item["anchor"]
+        }
+        if anchor == "end" {
+            tx = ex - 7
+        }
+        out = out + "<line x1=\"" + num(px) + "\" y1=\"" + num(py) + "\" x2=\"" + num(ex) + "\" y2=\"" + num(ey)
+        out = out + "\" stroke=\"rgba(239,237,230,0.4)\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\" stroke-dasharray=\"2 3\"/>"
+        out = out + "<circle cx=\"" + num(px) + "\" cy=\"" + num(py) + "\" r=\"2\" fill=\"#efede6\"/>"
+        out = out + "<text x=\"" + num(tx) + "\" y=\"" + num(ey + 3.5) + "\" text-anchor=\"" + anchor + "\">" + item["text"] + "</text>"
+        i = i + 1
+    }
+    out = out + "</g>"
+    return out
+}
+
+// The dashed ground plane the boxes sit on. It is a drafting board, not a
+// texture: the lines mark the same unit the boxes are measured in.
+fn iso_ground(spec) {
+    let x0 = spec["x0"]
+    let y0 = spec["y0"]
+    let x1 = spec["x1"]
+    let y1 = spec["y1"]
+    let step = spec["step"]
+    var colour = "rgba(239,237,230,0.16)"
+    if spec.has("colour") {
+        colour = spec["colour"]
+    }
+    var dash = "3 5"
+    if spec.has("dash") {
+        dash = spec["dash"]
+    }
+    var out = "<g class=\"iso-grid\" stroke=\"" + colour + "\" stroke-width=\"1\""
+    out = out + " vector-effect=\"non-scaling-stroke\" stroke-dasharray=\"" + dash + "\" fill=\"none\">"
+    var x = x0
+    while x <= x1 {
+        out = out + "<line x1=\"" + num(iso_sx(x, y0)) + "\" y1=\"" + num(iso_sy(x, y0, 0)) + "\""
+        out = out + " x2=\"" + num(iso_sx(x, y1)) + "\" y2=\"" + num(iso_sy(x, y1, 0)) + "\""
+        out = out + " vector-effect=\"non-scaling-stroke\"/>"
+        x = x + step
+    }
+    var y = y0
+    while y <= y1 {
+        out = out + "<line x1=\"" + num(iso_sx(x0, y)) + "\" y1=\"" + num(iso_sy(x0, y, 0)) + "\""
+        out = out + " x2=\"" + num(iso_sx(x1, y)) + "\" y2=\"" + num(iso_sy(x1, y, 0)) + "\""
+        out = out + " vector-effect=\"non-scaling-stroke\"/>"
+        y = y + step
+    }
+    out = out + "</g>"
+    return out
+}
+
+// A dashed connector between two points in iso space, for flow diagrams.
+export fn iso_link(a, b, colour) {
+    let x1 = iso_sx(a["x"], a["y"])
+    let y1 = iso_sy(a["x"], a["y"], a["z"])
+    let x2 = iso_sx(b["x"], b["y"])
+    let y2 = iso_sy(b["x"], b["y"], b["z"])
+    var out = "<line class=\"iso-link\" x1=\"" + num(x1) + "\" y1=\"" + num(y1) + "\""
+    out = out + " x2=\"" + num(x2) + "\" y2=\"" + num(y2) + "\""
+    out = out + " stroke=\"" + colour + "\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\""
+    out = out + " stroke-dasharray=\"3 4\"/>"
+    return out
+}
+
+// A label sitting on the top face of a box, in the page's own mono face.
+export fn iso_tag(box, text) {
+    let cx = box["x"] + box["w"] / 2
+    let cy = box["y"] + box["d"] / 2
+    let cz = box["z"] + box["h"]
+    var out = "<text class=\"iso-tag\" x=\"" + num(iso_sx(cx, cy)) + "\" y=\"" + num(iso_sy(cx, cy, cz)) + "\""
+    out = out + " text-anchor=\"middle\" dominant-baseline=\"middle\">" + text + "</text>"
+    return out
+}

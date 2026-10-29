@@ -1,0 +1,156 @@
+// src/page.bun — the document shell, the fixed header, the footer.
+//
+// The header is a HUD: a mark, two mono lines of standing information, the
+// navigation, and the one action. It stays on screen while the page moves,
+// because the page is long and the way back is the point.
+
+export fn page_esc(text) {
+    var out = str(text)
+    out = out.replace("&", "&amp;")
+    out = out.replace("<", "&lt;")
+    out = out.replace(">", "&gt;")
+    out = out.replace("\"", "&quot;")
+    return out
+}
+
+// The mark is a kiln opening: a square with an arch cut out of its foot.
+export fn page_mark(size) {
+    return "<svg class=\"mark\" width=\"" + str(size) + "\" height=\"" + str(size) + "\" viewBox=\"0 0 24 24\" aria-hidden=\"true\">"
+        + "<path d=\"M2 22V2h20v20h-7v-9H9v9z\" fill=\"currentColor\"/></svg>"
+}
+
+fn arrow() {
+    return "<svg class=\"arrow\" width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" aria-hidden=\"true\">"
+        + "<path d=\"M2 12L12 2M12 2H5M12 2v7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/></svg>"
+}
+
+export fn page_header(active) {
+    var out = "<header class=\"hud\"><div class=\"hud-in\">"
+    out = out + "<a class=\"brand\" href=\"#top\" aria-label=\"Kiln, home\">" + page_mark(19)
+        + "<span class=\"brand-word\">KILN</span></a>"
+    out = out + "<div class=\"hud-meta\"><span>Operations cloud</span><span>Built for makers</span></div>"
+    out = out + "<nav class=\"hud-nav\" aria-label=\"Primary\">"
+    let links = [
+        { "label": "Platform", "href": "#platform" },
+        { "label": "Products", "href": "#products" },
+        { "label": "Industries", "href": "#industries" },
+        { "label": "Company", "href": "#company" }
+    ]
+    var i = 0
+    while i < len(links) {
+        let link = links[i]
+        var cls = "hud-link"
+        if link["label"] == active {
+            cls = "hud-link is-active"
+        }
+        out = out + "<a class=\"" + cls + "\" href=\"" + link["href"] + "\">" + link["label"] + "</a>"
+        i = i + 1
+    }
+    out = out + "</nav>"
+    out = out + "<div class=\"hud-end\"><span class=\"hud-globe\">Global · EN</span>"
+    out = out + "<a class=\"btn btn-fill btn-sm hud-cta\" href=\"#demo\">Book a demo " + arrow() + "</a>"
+    out = out + "<button class=\"hud-menu\" type=\"button\" aria-expanded=\"false\" aria-controls=\"nav-sheet\" data-menu>"
+    out = out + "<span class=\"hud-bars\" aria-hidden=\"true\"><i></i><i></i></span><span class=\"sr\">Menu</span></button>"
+    out = out + "</div>"
+    out = out + "</div></header>"
+
+    // Below 680px the navigation moves into a sheet, because four links plus an
+    // action do not fit and hiding them without a way back is not a decision.
+    out = out + "<div class=\"sheet\" id=\"nav-sheet\" data-sheet hidden>"
+    out = out + "<nav class=\"sheet-nav\" aria-label=\"Primary, compact\">"
+    var j = 0
+    while j < len(links) {
+        let link = links[j]
+        var num = "0" + str(j + 1)
+        out = out + "<a class=\"sheet-link\" href=\"" + link["href"] + "\"><span class=\"sheet-num\">" + num + "</span>"
+        out = out + "<span class=\"sheet-label\">" + link["label"] + "</span>" + arrow() + "</a>"
+        j = j + 1
+    }
+    out = out + "</nav>"
+    out = out + "<div class=\"sheet-foot\"><span>Global · EN</span><span>Operations cloud · built for makers</span></div>"
+    out = out + "</div>"
+    return out
+}
+
+export fn page_head(title, description) {
+    var out = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+    out = out + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+    out = out + "<title>" + page_esc(title) + "</title>"
+    out = out + "<meta name=\"description\" content=\"" + page_esc(description) + "\">"
+    out = out + "<meta name=\"theme-color\" content=\"#0a0a0b\">"
+    out = out + "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">"
+    out = out + "<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>"
+    out = out + "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap\">"
+    out = out + "<link rel=\"stylesheet\" href=\"/assets/app.css\">"
+    out = out + "<link rel=\"icon\" href=\"/assets/mark.svg\" type=\"image/svg+xml\">"
+    out = out + "</head>"
+    return out
+}
+
+// A deterministic starfield for the footer: a small LCG, so the sky is the
+// same on every request and the page can be cached without a flicker.
+fn stars(count) {
+    var out = "<svg class=\"stars\" viewBox=\"0 0 1200 420\" preserveAspectRatio=\"xMidYMid slice\" aria-hidden=\"true\">"
+    var seed = 20261029
+    var i = 0
+    while i < count {
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        let x = (seed / 65536) % 1200
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        let y = (seed / 65536) % 420
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        let size = (seed / 65536) % 100
+        var radius = "0.8"
+        if size > 88 {
+            radius = "1.6"
+        } else if size > 60 {
+            radius = "1.1"
+        }
+        out = out + "<circle cx=\"" + str(x) + "\" cy=\"" + str(y) + "\" r=\"" + radius + "\"/>"
+        i = i + 1
+    }
+    out = out + "</svg>"
+    return out
+}
+
+export fn page_footer() {
+    var out = "<footer class=\"foot\" id=\"company\">"
+    out = out + stars(90)
+    out = out + "<div class=\"wrap foot-in\">"
+    out = out + "<div class=\"foot-brand\">" + page_mark(28) + "<span>KILN</span></div>"
+    out = out + "<p class=\"foot-line\">Adaptive resource platform for manufacturers, distributors and the brands they make for.</p>"
+    out = out + "<div class=\"foot-cols\">"
+    let cols = [
+        { "head": "Platform", "items": ["ARP", "IDP", "DataStudio", "Kilnbot"] },
+        { "head": "Company", "items": ["About", "Careers", "Press", "Contact"] },
+        { "head": "Resources", "items": ["Documentation", "Changelog", "Status", "Security"] }
+    ]
+    var i = 0
+    while i < len(cols) {
+        let col = cols[i]
+        out = out + "<div class=\"foot-col\"><span class=\"foot-head\">" + col["head"] + "</span>"
+        var j = 0
+        while j < len(col["items"]) {
+            out = out + "<a href=\"#top\">" + col["items"][j] + "</a>"
+            j = j + 1
+        }
+        out = out + "</div>"
+        i = i + 1
+    }
+    out = out + "</div>"
+    out = out + "<div class=\"foot-mark\" aria-hidden=\"true\">KILN</div>"
+    out = out + "<div class=\"foot-legal\"><span>© 2026 Kiln Systems</span>"
+    out = out + "<span>A design study. Kiln is not a real company and the figures on this page are illustrative.</span>"
+    out = out + "<span class=\"foot-mono\">Built in .bun · 51.5°N 0.1°W</span></div>"
+    out = out + "</div></footer>"
+    return out
+}
+
+export fn page_shell(body, script) {
+    var out = page_head("Kiln — the operations cloud for makers",
+        "Kiln unifies inventory, procurement, production, fulfilment and finance into one system for manufacturers, distributors and CPG brands.")
+    out = out + "<body>" + body
+    out = out + "<script src=\"/assets/app.js\" defer></script>"
+    out = out + "</body></html>"
+    return out
+}

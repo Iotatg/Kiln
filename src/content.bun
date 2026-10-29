@@ -1,0 +1,288 @@
+// src/content.bun — the words and the numbers.
+//
+// Everything the page shows comes from here, so the markup stays a rendering
+// concern and the copy can be edited in one place. The figures are a design
+// study, not a customer's ledger; the footer says so.
+
+export fn content_nav() {
+    return ["Platform", "Products", "Industries", "Company"]
+}
+
+// What the system holds, as six domains of one record.
+export fn content_domains() {
+    return [
+        { "name": "Inventory", "line": "Every bin, lot and serial, counted once." },
+        { "name": "Procurement", "line": "Requisition to receipt, with the price history." },
+        { "name": "Production", "line": "Work orders that know their material and margin." },
+        { "name": "Fulfilment", "line": "Wave, pack, label, load — one queue." },
+        { "name": "Finance", "line": "The ledger the warehouse actually writes." },
+        { "name": "Analytics", "line": "Answers at the grain of the order line." }
+    ]
+}
+
+// The six moves of the value chain, each with the record set it opens.
+export fn content_capabilities() {
+    return [
+        {
+            "id": "adapt",
+            "name": "Adapt your operations",
+            "line": "Model a new process without a consultant.",
+            "table": "catalog"
+        },
+        {
+            "id": "connect",
+            "name": "Connect any tool",
+            "line": "EDI, WMS, storefronts, banks, carriers.",
+            "table": "integrations"
+        },
+        {
+            "id": "unify",
+            "name": "Unify your master data",
+            "line": "One item, one supplier, one price.",
+            "table": "master"
+        },
+        {
+            "id": "automate",
+            "name": "Automate the value chain",
+            "line": "Rules that move the work, not tickets.",
+            "table": "automations"
+        },
+        {
+            "id": "analyze",
+            "name": "Analyze what matters",
+            "line": "Margin by order, not by month.",
+            "table": "reports"
+        },
+        {
+            "id": "drive",
+            "name": "Drive without limits",
+            "line": "Multi-plant, multi-currency, one ledger.",
+            "table": "shipments"
+        }
+    ]
+}
+
+// A table is a title, a meta line, the column headers, and rows of cells.
+// A cell that starts with "!" is a status and is drawn as a tag.
+export fn content_tables() {
+    return {
+        "catalog": {
+            "title": "Product catalog",
+            "meta": "All records · 1,284 items",
+            "columns": ["SKU", "Product", "On hand", "Reorder", "Unit cost", "Vendor", "Status"],
+            "rows": [
+                ["KX-1042", "Walnut shelf 900", "1,240", "300", "$18.40", "Northwind Mills", "!In stock"],
+                ["KX-1043", "Walnut shelf 1200", "860", "300", "$22.10", "Northwind Mills", "!In stock"],
+                ["KX-2011", "Ash bracket, left", "4,320", "800", "$3.85", "Cascade Foods", "!In stock"],
+                ["KX-2012", "Ash bracket, right", "3,980", "800", "$3.85", "Cascade Foods", "!In stock"],
+                ["KX-3380", "Kiln-dried oak plank", "210", "400", "$41.60", "Melrose Supply", "!Reorder"],
+                ["KX-3391", "Oak plank, wide", "96", "250", "$52.00", "Melrose Supply", "!Reorder"],
+                ["KX-4102", "Brass hinge 40mm", "7,600", "1,200", "$1.24", "Orlo Hardware", "!In stock"],
+                ["KX-4110", "Brass hinge 60mm", "2,140", "1,200", "$1.68", "Orlo Hardware", "!In stock"],
+                ["KX-5027", "Lacquer, matte 5L", "88", "60", "$34.20", "Cascade Foods", "!Low"],
+                ["KX-5104", "Lacquer, satin 5L", "142", "60", "$34.20", "Cascade Foods", "!In stock"],
+                ["KX-6620", "Felt pad, 20mm", "18,400", "4,000", "$0.08", "Orlo Hardware", "!In stock"],
+                ["KX-7011", "Shipping carton L", "540", "600", "$1.90", "Melrose Supply", "!Low"]
+            ]
+        },
+        "integrations": {
+            "title": "Connected systems",
+            "meta": "14 live · 2 paused",
+            "columns": ["System", "Direction", "Protocol", "Last sync", "Records", "Status"],
+            "rows": [
+                ["NetSuite", "Two-way", "REST", "12 s ago", "84,201", "!Live"],
+                ["Shopify Plus", "Inbound", "Webhook", "4 s ago", "12,908", "!Live"],
+                ["SPS Commerce", "Two-way", "EDI 850/855", "2 min ago", "3,412", "!Live"],
+                ["Körber WMS", "Two-way", "REST", "38 s ago", "26,740", "!Live"],
+                ["Stripe", "Inbound", "Webhook", "1 min ago", "9,180", "!Live"],
+                ["HSBC", "Outbound", "SFTP", "06:00 daily", "1,204", "!Live"],
+                ["DHL Freight", "Outbound", "REST", "9 min ago", "612", "!Live"],
+                ["Avalara", "Two-way", "SOAP", "22 min ago", "4,880", "!Paused"],
+                ["Legacy AS/400", "Inbound", "Batch", "03:00 daily", "48,000", "!Paused"]
+            ]
+        },
+        "master": {
+            "title": "Master data",
+            "meta": "6 domains · 2 conflicts",
+            "columns": ["Entity", "Source of truth", "Conflicts", "Owner", "Updated", "Status"],
+            "rows": [
+                ["Items", "Kiln", "0", "Data team", "Today 09:12", "!Clean"],
+                ["Suppliers", "Kiln", "0", "Procurement", "Today 08:40", "!Clean"],
+                ["Customers", "NetSuite", "0", "Revenue ops", "Today 09:04", "!Clean"],
+                ["Prices", "Kiln", "2", "Finance", "Today 07:55", "!Review"],
+                ["Bill of materials", "Kiln", "0", "Engineering", "Yesterday", "!Clean"],
+                ["Chart of accounts", "NetSuite", "0", "Finance", "12 Oct", "!Clean"]
+            ]
+        },
+        "automations": {
+            "title": "Automation rules",
+            "meta": "38 active · 4 paused",
+            "columns": ["Rule", "Trigger", "Actions", "Runs / 30d", "Hours saved", "Status"],
+            "rows": [
+                ["Reorder below safety stock", "Stock < reorder point", "3", "1,204", "186", "!Active"],
+                ["Route rush orders", "Priority = rush", "2", "412", "64", "!Active"],
+                ["Three-way match", "Invoice received", "4", "2,880", "241", "!Active"],
+                ["Quote to order", "Quote accepted", "5", "908", "122", "!Active"],
+                ["Carrier selection", "Shipment created", "2", "1,640", "88", "!Active"],
+                ["Month-end close", "Last day of month", "9", "12", "36", "!Paused"]
+            ]
+        },
+        "reports": {
+            "title": "Reports",
+            "meta": "24 saved views",
+            "columns": ["Report", "Grain", "Refresh", "Owner", "Rows", "Status"],
+            "rows": [
+                ["Gross margin by order", "Order line", "Live", "Finance", "412,880", "!Live"],
+                ["Inventory turns", "Item × plant", "Hourly", "Ops", "18,204", "!Live"],
+                ["Supplier on-time", "PO", "Daily", "Procurement", "6,412", "!Live"],
+                ["Fill rate by channel", "Shipment", "Live", "Revenue ops", "88,140", "!Live"],
+                ["Landed cost", "Receipt", "Daily", "Finance", "24,660", "!Live"],
+                ["Labour variance", "Work order", "Hourly", "Plant", "3,208", "!Live"]
+            ]
+        },
+        "shipments": {
+            "title": "Outbound loads",
+            "meta": "Today · 46 loads",
+            "columns": ["Load", "Lane", "Carrier", "ETA", "Weight", "Status"],
+            "rows": [
+                ["LD-8841", "Rotterdam → Leeds", "DHL Freight", "14:20", "18,400 kg", "!On time"],
+                ["LD-8842", "Porto → Lyon", "DB Schenker", "16:05", "12,900 kg", "!On time"],
+                ["LD-8843", "Leeds → Glasgow", "DX", "18:40", "6,200 kg", "!Delayed"],
+                ["LD-8844", "Lyon → Milan", "Geodis", "19:10", "22,100 kg", "!On time"],
+                ["LD-8845", "Gdańsk → Berlin", "DHL Freight", "20:00", "9,800 kg", "!On time"],
+                ["LD-8846", "Berlin → Hamburg", "DB Schenker", "21:15", "4,600 kg", "!Loading"]
+            ]
+        }
+    }
+}
+
+// The four products, each with the diagram that explains it.
+export fn content_products() {
+    return [
+        {
+            "id": "arp",
+            "name": "ARP",
+            "full": "Adaptive Resource Platform",
+            "headline": "The operating core",
+            "body": "Inventory, procurement, production, fulfilment and the ledger share one model. A work order knows its material, its margin and its truck before anyone opens a spreadsheet.",
+            "points": ["Live inventory by plant and bin", "MRP that respects real capacity", "One ledger, every entity"],
+            "diagram": "stack"
+        },
+        {
+            "id": "idp",
+            "name": "IDP",
+            "full": "Integration Data Plane",
+            "headline": "Every system, one shape",
+            "body": "Kiln speaks EDI, REST, SOAP and flat files, then hands every record to the same schema. Integrations stop being projects and become rows in a table you can pause.",
+            "points": ["14 connectors, one schema", "Replay any failed message", "Field-level lineage"],
+            "diagram": "links"
+        },
+        {
+            "id": "datastudio",
+            "name": "DataStudio",
+            "full": "Realtime BI layer",
+            "headline": "Margin by order, not by month",
+            "body": "Every operational event lands in a columnar store within seconds. Ask a question about a shipment that left this morning and get the answer before the truck clears the gate.",
+            "points": ["Sub-minute freshness", "Drill from P&L to PO line", "Saved views per role"],
+            "diagram": "orbit"
+        },
+        {
+            "id": "kilnbot",
+            "name": "Kilnbot",
+            "full": "Operations copilot",
+            "headline": "An operator that never sleeps",
+            "body": "Describe the outcome and Kilnbot writes the rule, drafts the purchase order or fixes the mismatched record — with the diff shown before anything is committed.",
+            "points": ["Plain-language rules", "Diffs before commits", "Full audit trail"],
+            "diagram": "core"
+        }
+    ]
+}
+
+export fn content_industries() {
+    return [
+        {
+            "id": "cpg",
+            "name": "Consumer goods",
+            "body": "Promotions, co-packing and a thousand SKUs that all need the same forecast.",
+            "modules": ["Promotion planning", "Co-pack orders", "Lot traceability"],
+            "tone": "#f2c230"
+        },
+        {
+            "id": "manufacturing",
+            "name": "Manufacturing",
+            "body": "Routings, work centres and the variance between what was planned and what ran.",
+            "modules": ["Work orders", "Capacity planning", "Shop-floor capture"],
+            "tone": "#8f939b"
+        },
+        {
+            "id": "food",
+            "name": "Food and beverage",
+            "body": "Shelf life, allergens and recalls that have to resolve in minutes, not days.",
+            "modules": ["Batch expiry", "Allergen matrix", "Recall tracing"],
+            "tone": "#e8503a"
+        },
+        {
+            "id": "construction",
+            "name": "Construction",
+            "body": "Projects, staged deliveries and subcontractor costs against a moving budget.",
+            "modules": ["Project costing", "Staged delivery", "Subcontractor ledger"],
+            "tone": "#b4713f"
+        },
+        {
+            "id": "distribution",
+            "name": "Distribution",
+            "body": "Thousands of SKUs moving through a handful of docks, every day, on time.",
+            "modules": ["Wave picking", "Lane costing", "Carrier routing"],
+            "tone": "#2222f5"
+        },
+        {
+            "id": "beauty",
+            "name": "Health and beauty",
+            "body": "Regulated labels, short runs and contract manufacturers who miss dates.",
+            "modules": ["Label compliance", "Contract runs", "Serialisation"],
+            "tone": "#b98ea6"
+        }
+    ]
+}
+
+export fn content_stats() {
+    return [
+        { "value": "12×", "label": "faster customer invoicing" },
+        { "value": "92%", "label": "time saved on order processing" },
+        { "value": "100%", "label": "accuracy in fulfilment" },
+        { "value": "6 wks", "label": "to first live plant" }
+    ]
+}
+
+export fn content_logos() {
+    return [
+        { "name": "NORTHWIND", "style": "wide" },
+        { "name": "Cascade", "style": "serif" },
+        { "name": "MELROSE", "style": "mono" },
+        { "name": "orlo", "style": "round" }
+    ]
+}
+
+export fn content_quote() {
+    return {
+        "text": "We closed the quarter four days early. Not because anyone worked harder — because for the first time the numbers in the warehouse and the numbers in the ledger were the same numbers.",
+        "name": "Eloy Marchetti",
+        "role": "COO, Cascade Foods"
+    }
+}
+
+// Short phrases for the ticker under the hero.
+export fn content_ticker() {
+    return [
+        "Landed cost",
+        "Batch expiry",
+        "EDI 850 / 855",
+        "Multi-currency",
+        "Serialisation",
+        "Allergen matrix",
+        "Duty drawback",
+        "Cycle count",
+        "Backflush",
+        "Rebates"
+    ]
+}

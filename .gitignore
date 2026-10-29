@@ -1,0 +1,20 @@
+# runtime — clone github.com/Iotatg/Bun into vendor/bun instead of committing it
+vendor/
+
+# the form writes here; it is a file, not a database
+data/*.jsonl
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+
+# editors and os
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# local overrides
+.env
+.env.local

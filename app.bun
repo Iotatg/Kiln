@@ -1,0 +1,116 @@
+// app.bun — the server.
+//
+// One page, three assets, one endpoint that takes an email. Everything else is
+// generated per request from src/content.bun, which is why the tables on the
+// page are the product and not a picture of it.
+
+import { http_listen, http_serve_forever, http_html, http_json, http_text } from './src/http.bun'
+import { page_shell, page_header, page_footer } from './src/page.bun'
+import { sec_hero, sec_board, sec_statement, sec_trust, sec_products, sec_industries, sec_demo } from './src/sections.bun'
+
+var PORT = 8787
+let port_env = getenv("PORT")
+if port_env != null {
+    PORT = int(port_env)
+}
+
+let TYPES = {
+    "css": "text/css; charset=utf-8",
+    "js": "text/javascript; charset=utf-8",
+    "svg": "image/svg+xml",
+    "png": "image/png",
+    "ico": "image/x-icon",
+    "json": "application/json; charset=utf-8"
+}
+
+fn asset(name) {
+    let path = "assets/" + name
+    if !file_exists(path) {
+        return null
+    }
+    let text = read_file(path)
+    var ext = name
+    let parts = name.split(".")
+    if len(parts) > 1 {
+        ext = parts[len(parts) - 1]
+    }
+    var mime = "application/octet-stream"
+    if TYPES.has(ext) {
+        mime = TYPES.get(ext)
+    }
+    return {
+        "status": 200,
+        "headers": {
+            "Content-Type": mime,
+            "Cache-Control": "public, max-age=300"
+        },
+        "body": text
+    }
+}
+
+fn home() {
+    var body = page_header("Platform")
+    body = body + '<main>' + sec_hero() + sec_board() + sec_statement() + sec_trust() + sec_products() + sec_industries() + sec_demo() + '</main>'
+    body = body + page_footer()
+    return page_shell(body, "")
+}
+
+// The demo form posts here. It keeps the address in a JSON lines file and
+// answers with a sentence the page can put under the field.
+fn take_lead(req) {
+    var payload = null
+    try {
+        payload = json_parse(req["body"])
+    } catch err {
+        payload = null
+    }
+    if payload == null or !payload.has("email") {
+        return http_json(400, { "ok": false, "error": "Send an email address in the body." })
+    }
+    let email = str(payload["email"]).trim().lower()
+    if len(email) < 5 or !email.contains("@") or !email.contains(".") {
+        return http_json(400, { "ok": false, "error": "That address is missing something — check the domain." })
+    }
+    let record = {
+        "email": email,
+        "at": int(now()),
+        "path": req["path"]
+    }
+    if !file_exists("data") {
+        make_dir("data")
+    }
+    append_file("data/leads.jsonl", json_stringify(record) + "\n")
+    return http_json(200, {
+        "ok": true,
+        "message": "Got it. We will reply to " + email + " within one working day."
+    })
+}
+
+fn route(req) {
+    let path = req["path"]
+    if path == "/" {
+        return http_html(200, home())
+    }
+    if path == "/health" {
+        return http_json(200, { "ok": true, "service": "kiln" })
+    }
+    if path == "/api/demo" {
+        if req["method"] != "POST" {
+            return http_json(405, { "ok": false, "error": "Use POST." })
+        }
+        return take_lead(req)
+    }
+    if path.starts_with("/assets/") {
+        let name = path.slice(8, len(path))
+        let found = asset(name)
+        if found == null {
+            return http_text(404, "not found")
+        }
+        return found
+    }
+    return http_text(404, "not found")
+}
+
+print("[kiln] listening on http://localhost:" + str(PORT))
+let server = http_listen("0.0.0.0", PORT)
+http_serve_forever(server, route)
